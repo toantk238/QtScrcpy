@@ -35,3 +35,22 @@ add_test(NAME ${TEST_NAME} COMMAND ${TEST_NAME})
 set_tests_properties(${TEST_NAME} PROPERTIES
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen"
 )
+
+# ---- device naming (pure logic, no GUI) ----
+set(NAMING_TEST_NAME tst_devicenaming)
+
+add_executable(${NAMING_TEST_NAME}
+    tst_devicenaming.cpp
+    ../ui/devicenaming.h
+    ../ui/devicenaming.cpp
+)
+
+target_include_directories(${NAMING_TEST_NAME} PRIVATE
+    ../ui
+)
+
+target_link_libraries(${NAMING_TEST_NAME} PRIVATE
+    Qt${QT_DESIRED_VERSION}::Test
+)
+
+add_test(NAME ${NAMING_TEST_NAME} COMMAND ${NAMING_TEST_NAME})

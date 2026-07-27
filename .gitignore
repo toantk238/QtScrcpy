@@ -27,4 +27,7 @@ compile_commands.json
 CTestTestfile.cmake
 *_autogen/
 build_test_check/
+# built test binaries only — keep the sources tracked
 QtScrcpy/test/tst_*
+!QtScrcpy/test/tst_*.cpp
+!QtScrcpy/test/tst_*.h

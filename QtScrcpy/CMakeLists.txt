@@ -184,6 +184,8 @@ set(QC_UI_SOURCES
     ui/devicetile.cpp
     ui/devicedashboard.h
     ui/devicedashboard.cpp
+    ui/devicenaming.h
+    ui/devicenaming.cpp
     render/qyuvopenglwidget.h
     render/qyuvopenglwidget.cpp
 )

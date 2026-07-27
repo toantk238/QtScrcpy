@@ -19,6 +19,7 @@
 #include "adbprocess.h"
 #include "../QtScrcpyCore/include/QtScrcpyCore.h"
 #include "audio/audiooutput.h"
+#include "devicenaming.h"
 
 struct CsvDeviceInfo {
     QString brand;
@@ -103,8 +104,12 @@ private:
     void saveIpHistory(const QString &ip);
     QString getDeviceDisplayName(const QString &serial);
     void loadDevicesCsv();
-    QString getDeviceModelFromCsv(const QString &deviceId);
-    void cacheDeviceInfo(const QString &serial, const QString &manufacturer, const QString &device);
+    QString getDeviceModelFromCsv(const QString &deviceId) const;
+    void cacheDeviceInfo(const QString &serial, const DeviceNaming::DeviceInfo &info);
+    // "<name>-<serial>" built from everything currently known about the device.
+    QString deviceLabel(const QString &serial) const;
+    // Rebuild serialBox + connectedPhoneList from the cache for these serials.
+    void repopulateDeviceList(const QStringList &serials);
     void loadPortHistory();
     void savePortHistory(const QString &port);
 
@@ -142,9 +147,9 @@ private:
     QTimer m_autoUpdatetimer;
     QTimer m_connectionTimer;
     QList<CsvDeviceInfo> m_devicesCsv;
-    QHash<QString, QPair<QString, QString>> m_deviceInfoCache; // serial -> (manufacturer, device)
+    QHash<QString, DeviceNaming::DeviceInfo> m_deviceInfoCache; // serial -> known device facts
     QDateTime m_lastFullDeviceUpdate;
-    bool m_deviceUpdateInProgress;
+    DeviceUpdateGate m_deviceUpdateGate;
     ConnectionState m_connectionState = CS_IDLE;
     bool m_connectionIsWifi = false;
     QMap<QString, qsc::DeviceParams> m_connectedParams;  // serial → params used at connect time

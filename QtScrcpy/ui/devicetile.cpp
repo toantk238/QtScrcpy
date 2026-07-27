@@ -1,4 +1,5 @@
 #include "devicetile.h"
+#include "devicenaming.h"
 #include "videoform.h"
 
 #include <QEvent>
@@ -18,7 +19,8 @@ DeviceTile::DeviceTile(const QString &serial, const QString &displayName, bool f
     headerLayout->setContentsMargins(4, 2, 4, 2);
     headerLayout->setSpacing(4);
 
-    m_titleLabel = new QLabel(displayName.isEmpty() ? serial : displayName, headerWidget);
+    // Same "<name>-<serial>" form as the device list, so a tile and its list entry match.
+    m_titleLabel = new QLabel(DeviceNaming::formatLabel(displayName, serial), headerWidget);
     m_titleLabel->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 
     m_popOutBtn = new QPushButton("↗", headerWidget);

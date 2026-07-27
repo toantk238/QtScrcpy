@@ -47,14 +47,10 @@ Dialog::Dialog(QWidget *parent) : QWidget(parent), ui(new Ui::Widget)
 
     // Load CSV device database
     loadDevicesCsv();
-    
-    // Initialize device update state
-    m_deviceUpdateInProgress = false;
 
     updateBootConfig(true);
 
     on_useSingleModeCheck_clicked();
-    on_updateDevice_clicked();
 
     connect(&m_autoUpdatetimer, &QTimer::timeout, this, &Dialog::on_updateDevice_clicked);
     if (ui->autoUpdatecheckBox->isChecked()) {
@@ -72,6 +68,21 @@ Dialog::Dialog(QWidget *parent) : QWidget(parent), ui(new Ui::Widget)
         bool newLine = true;
         QStringList args = m_adb.arguments();
 
+        // Every terminal result frees the shared adb process. Release the refresh
+        // gate on all of them, not just on "devices" commands: a refresh that was
+        // never issued (start() refuses while adb is busy) leaves someone else's
+        // arguments here, and matching on them used to strand the gate forever.
+        switch (processResult) {
+        case qsc::AdbProcess::AER_ERROR_START:
+        case qsc::AdbProcess::AER_ERROR_EXEC:
+        case qsc::AdbProcess::AER_ERROR_MISSING_BINARY:
+        case qsc::AdbProcess::AER_SUCCESS_EXEC:
+            m_deviceUpdateGate.onAdbFinished();
+            break;
+        default:
+            break;
+        }
+
         switch (processResult) {
         case qsc::AdbProcess::AER_ERROR_START:
             break;
@@ -84,127 +95,45 @@ Dialog::Dialog(QWidget *parent) : QWidget(parent), ui(new Ui::Widget)
             if (args.contains("ifconfig") && args.contains("wlan0")) {
                 getIPbyIp();
             }
-            // Reset progress flag on error
-            if (args.contains("devices")) {
-                m_deviceUpdateInProgress = false;
-            }
             break;
         case qsc::AdbProcess::AER_ERROR_MISSING_BINARY:
             log = "adb not found";
-            // Reset progress flag on error
-            if (args.contains("devices")) {
-                m_deviceUpdateInProgress = false;
-            }
             break;
         case qsc::AdbProcess::AER_SUCCESS_EXEC:
             //log = m_adb.getStdOut();
             if (args.contains("devices") && args.contains("-l")) {
                 QList<qsc::DeviceInfo> devices = m_adb.getDevicesInfo();
-                ui->serialBox->clear();
-                ui->connectedPhoneList->clear();
 
-                // Create a list of device display items for sorting
-                QStringList deviceDisplayList;
-                QStringList serialList;
-
+                QStringList serials;
                 for (const auto &device : devices) {
-                    // Cache device info for future auto-updates
-                    cacheDeviceInfo(device.serial, device.manufacturer, device.device);
-
-                    // Try to get model name from CSV first
-                    QString displayName = getDeviceModelFromCsv(device.device);
-                    if (displayName.isEmpty()) {
-                        // Fallback to original method
-                        displayName = device.manufacturer + " " + device.model;
-                    }
-
-                    QString fullDisplayName = displayName + "-" + device.serial;
-                    deviceDisplayList.append(fullDisplayName);
-                    serialList.append(device.serial);
+                    DeviceNaming::DeviceInfo known;
+                    known.manufacturer = device.manufacturer;  // empty here, filled by the async fetch
+                    known.device = device.device;
+                    // "adb devices -l" reports "Unknown" when it has no model field
+                    known.model = (device.model == "Unknown") ? QString() : device.model;
+                    cacheDeviceInfo(device.serial, known);
+                    serials.append(device.serial);
                 }
 
-                // Sort devices alphabetically by display name
-                QList<QPair<QString, QString>> sortedDevices;
-                for (int i = 0; i < deviceDisplayList.size(); ++i) {
-                    sortedDevices.append(QPair<QString, QString>(deviceDisplayList[i], serialList[i]));
-                }
-
-                std::sort(sortedDevices.begin(), sortedDevices.end(), [](const QPair<QString, QString> &a, const QPair<QString, QString> &b) {
-                    return a.first < b.first;
-                });
-
-                // Add sorted devices to UI — block signals to prevent itemChanged from
-                // overwriting Config with a partial list while the list is being built.
-                ui->connectedPhoneList->blockSignals(true);
-                for (const auto &sortedDevice : sortedDevices) {
-                    ui->serialBox->addItem(sortedDevice.second);
-                    auto *item = new QListWidgetItem(sortedDevice.first);
-                    ui->connectedPhoneList->addItem(item);
-                    applyCheckStateToItem(item, sortedDevice.second);
-                }
-                ui->connectedPhoneList->blockSignals(false);
-                updateToggleAllBtn();
+                repopulateDeviceList(serials);
 
                 // Trigger async fetch for each device to get detailed properties
                 for (const auto &device : devices) {
                     m_adb.fetchDevicePropertiesAsync(device.serial);
                 }
-
-                // Reset progress flag after full device update
-                m_deviceUpdateInProgress = false;
             } else if (args.contains("devices") && !args.contains("-l")) {
-                // Handle basic device list (for auto-updates) - use cached info
+                // Lightweight auto-update: serials only, names come from the cache.
                 QStringList serials = m_adb.getDevicesSerialFromStdOut();
-                ui->serialBox->clear();
-                ui->connectedPhoneList->clear();
 
-                // Create a list of device display items for sorting
-                QStringList deviceDisplayList;
-                QStringList serialList;
-
+                // A device plugged in since the last full refresh has no cached name
+                // yet — fetch it now instead of leaving it as "Unknown Device".
                 for (const QString &serial : serials) {
-                    QString displayName = "Unknown Device";
-
-                    // Try to use cached info first
-                    if (m_deviceInfoCache.contains(serial)) {
-                        QPair<QString, QString> cached = m_deviceInfoCache[serial];
-                        QString csvModelName = getDeviceModelFromCsv(cached.second);
-                        if (!csvModelName.isEmpty()) {
-                            displayName = csvModelName;
-                        } else {
-                            displayName = cached.first + " Device";
-                        }
+                    if (!m_deviceInfoCache.contains(serial)) {
+                        m_adb.fetchDevicePropertiesAsync(serial);
                     }
-
-                    QString fullDisplayName = displayName + "-" + serial;
-                    deviceDisplayList.append(fullDisplayName);
-                    serialList.append(serial);
                 }
 
-                // Sort devices alphabetically by display name
-                QList<QPair<QString, QString>> sortedDevices;
-                for (int i = 0; i < deviceDisplayList.size(); ++i) {
-                    sortedDevices.append(QPair<QString, QString>(deviceDisplayList[i], serialList[i]));
-                }
-
-                std::sort(sortedDevices.begin(), sortedDevices.end(), [](const QPair<QString, QString> &a, const QPair<QString, QString> &b) {
-                    return a.first < b.first;
-                });
-
-                // Add sorted devices to UI — block signals to prevent itemChanged from
-                // overwriting Config with a partial list while the list is being built.
-                ui->connectedPhoneList->blockSignals(true);
-                for (const auto &sortedDevice : sortedDevices) {
-                    ui->serialBox->addItem(sortedDevice.second);
-                    auto *item = new QListWidgetItem(sortedDevice.first);
-                    ui->connectedPhoneList->addItem(item);
-                    applyCheckStateToItem(item, sortedDevice.second);
-                }
-                ui->connectedPhoneList->blockSignals(false);
-                updateToggleAllBtn();
-
-                // Reset progress flag after lightweight device update
-                m_deviceUpdateInProgress = false;
+                repopulateDeviceList(serials);
             } else if (args.contains("show") && args.contains("wlan0")) {
                 QString ip = m_adb.getDeviceIPFromStdOut();
                 if (ip.isEmpty()) {
@@ -233,6 +162,10 @@ Dialog::Dialog(QWidget *parent) : QWidget(parent), ui(new Ui::Widget)
             outLog(log, newLine);
         }
     });
+
+    // Kick off the first refresh only once the result handlers above are wired up,
+    // otherwise the very first device list would be parsed by nobody.
+    on_updateDevice_clicked();
 
     m_hideIcon = new QSystemTrayIcon(this);
     m_hideIcon->setIcon(QIcon(":/image/tray/logo.png"));
@@ -605,13 +538,14 @@ void Dialog::on_updateDevice_clicked()
         return;
     }
     
-    // Prevent overlapping device updates to avoid blocking the main thread
-    if (m_deviceUpdateInProgress) {
-        qDebug() << "Device update already in progress, skipping...";
+    // Prevent overlapping device updates to avoid blocking the main thread.
+    // Also skip while adb is busy with any other command: QProcess::start()
+    // silently refuses in that state, so issuing it would drop the refresh.
+    if (!m_deviceUpdateGate.tryBegin(m_adb.isRuning())) {
+        qDebug() << "Device update skipped: adb busy or update already in progress";
         return;
     }
-    
-    m_deviceUpdateInProgress = true;
+
     outLog("update devices...", false);
 
     // For auto-updates, use a lightweight check and cache if recent full update was done
@@ -622,11 +556,11 @@ void Dialog::on_updateDevice_clicked()
         // For auto-updates within 30 seconds, use basic device list without expensive ADB calls
         m_adb.execute("", QStringList() << "devices");
     } else {
-        // For manual updates or when cache is stale, do full update
+        // For manual updates or when cache is stale, do full update.
+        // Stamp it for auto-updates too — otherwise the 30s window never resets
+        // and every auto-update from then on runs the expensive "-l" variant.
         m_adb.execute("", QStringList() << "devices" << "-l");
-        if (!isAutoUpdate) {
-            m_lastFullDeviceUpdate = now;
-        }
+        m_lastFullDeviceUpdate = now;
     }
 }
 
@@ -836,23 +770,18 @@ void Dialog::onDeviceDisconnected(QString serial)
 
 void Dialog::onDeviceInfoUpdated(const qsc::DeviceInfo &info)
 {
-    // Update the cached device info
-    cacheDeviceInfo(info.serial, info.manufacturer, info.device);
+    DeviceNaming::DeviceInfo fetched;
+    fetched.manufacturer = info.manufacturer;
+    fetched.device = info.device;
+    fetched.model = (info.model == "Unknown") ? QString() : info.model;
+    cacheDeviceInfo(info.serial, fetched);
 
     // Find and update the device in connectedPhoneList
     for (int i = 0; i < ui->serialBox->count(); ++i) {
         if (ui->serialBox->itemText(i) == info.serial) {
-            QString displayName = getDeviceModelFromCsv(info.device);
-            if (displayName.isEmpty()) {
-                // Fallback: use manufacturer + model if no CSV match
-                // Since we don't have the model here, just use manufacturer
-                if (!info.manufacturer.isEmpty()) {
-                    displayName = info.manufacturer + " Device";
-                } else {
-                    displayName = "Unknown Device";
-                }
-            }
-            ui->connectedPhoneList->item(i)->setText(displayName);
+            // deviceLabel() keeps the serial suffix — rewriting the item with a
+            // bare name here was what made the list flip formats mid-session.
+            ui->connectedPhoneList->item(i)->setText(deviceLabel(info.serial));
             break;
         }
     }
@@ -1222,41 +1151,55 @@ void Dialog::showIpEditMenu(const QPoint &pos)
 
 QString Dialog::getDeviceDisplayName(const QString &serial)
 {
-    // First, check if we have device info from adb devices -l (already available)
-    QList<qsc::DeviceInfo> devices = m_adb.getDevicesInfo();
-    for (const auto &device : devices) {
-        if (device.serial == serial) {
-            // Try to get model name from CSV first
-            QString csvModelName = getDeviceModelFromCsv(device.device);
-            if (!csvModelName.isEmpty()) {
-                return csvModelName;
-            }
-
-            // If we have manufacturer and model, use them
-            if (!device.manufacturer.isEmpty() && !device.model.isEmpty()) {
-                return device.manufacturer + " " + device.model;
-            }
-        }
+    if (!m_deviceInfoCache.contains(serial)) {
+        // Nothing known yet — fetch in the background, the list refreshes itself
+        // via onDeviceInfoUpdated once the properties arrive.
+        m_adb.fetchDevicePropertiesAsync(serial);
+        return DeviceNaming::resolveName(QString(), QString(), QString());
     }
 
-    // Second, check cache for previously fetched detailed properties
+    const DeviceNaming::DeviceInfo &cached = m_deviceInfoCache[serial];
+    return DeviceNaming::resolveName(getDeviceModelFromCsv(cached.device), cached.manufacturer, cached.model);
+}
+
+QString Dialog::deviceLabel(const QString &serial) const
+{
+    QString name;
     if (m_deviceInfoCache.contains(serial)) {
-        const auto &cachedInfo = m_deviceInfoCache[serial];
-        QString csvModelName = getDeviceModelFromCsv(cachedInfo.second); // device ID
-        if (!csvModelName.isEmpty()) {
-            return csvModelName;
-        }
-        if (!cachedInfo.first.isEmpty()) { // manufacturer
-            return cachedInfo.first + " Device";
-        }
+        const DeviceNaming::DeviceInfo &cached = m_deviceInfoCache[serial];
+        name = DeviceNaming::resolveName(getDeviceModelFromCsv(cached.device), cached.manufacturer, cached.model);
+    } else {
+        name = DeviceNaming::resolveName(QString(), QString(), QString());
     }
+    return DeviceNaming::formatLabel(name, serial);
+}
 
-    // Third, trigger async fetch for detailed properties (non-blocking)
-    // This will update the UI later via onDeviceInfoUpdated signal
-    m_adb.fetchDevicePropertiesAsync(serial);
+void Dialog::repopulateDeviceList(const QStringList &serials)
+{
+    // Sort by the label actually shown so the order matches what the user reads.
+    QList<QPair<QString, QString>> sortedDevices; // (label, serial)
+    sortedDevices.reserve(serials.size());
+    for (const QString &serial : serials) {
+        sortedDevices.append(qMakePair(deviceLabel(serial), serial));
+    }
+    std::sort(sortedDevices.begin(), sortedDevices.end(), [](const QPair<QString, QString> &a, const QPair<QString, QString> &b) {
+        return a.first < b.first;
+    });
 
-    // Return placeholder while fetching
-    return "Loading...";
+    ui->serialBox->clear();
+    ui->connectedPhoneList->clear();
+
+    // Block signals to prevent itemChanged from overwriting Config with a
+    // partial list while the list is being built.
+    ui->connectedPhoneList->blockSignals(true);
+    for (const auto &sortedDevice : sortedDevices) {
+        ui->serialBox->addItem(sortedDevice.second);
+        auto *item = new QListWidgetItem(sortedDevice.first);
+        ui->connectedPhoneList->addItem(item);
+        applyCheckStateToItem(item, sortedDevice.second);
+    }
+    ui->connectedPhoneList->blockSignals(false);
+    updateToggleAllBtn();
 }
 
 void Dialog::loadDevicesCsv()
@@ -1298,8 +1241,11 @@ void Dialog::loadDevicesCsv()
     qDebug() << "Loaded" << m_devicesCsv.size() << "devices from CSV";
 }
 
-QString Dialog::getDeviceModelFromCsv(const QString &deviceId)
+QString Dialog::getDeviceModelFromCsv(const QString &deviceId) const
 {
+    if (deviceId.isEmpty()) {
+        return QString();
+    }
     for (const auto &csvDevice : m_devicesCsv) {
         if (csvDevice.device == deviceId) {
             return csvDevice.manufacturer + " " + csvDevice.modelName;
@@ -1309,9 +1255,11 @@ QString Dialog::getDeviceModelFromCsv(const QString &deviceId)
     return QString(); // Not found
 }
 
-void Dialog::cacheDeviceInfo(const QString &serial, const QString &manufacturer, const QString &device)
+void Dialog::cacheDeviceInfo(const QString &serial, const DeviceNaming::DeviceInfo &info)
 {
-    m_deviceInfoCache[serial] = QPair<QString, QString>(manufacturer, device);
+    // Merge rather than assign: each adb path knows a different subset of the
+    // fields, and a path that does not know one must not erase it.
+    DeviceNaming::merge(m_deviceInfoCache[serial], info);
 }
 
 void Dialog::loadPortHistory()
