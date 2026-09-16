@@ -2,6 +2,7 @@
 #define VIDEOFORM_H
 
 #include <QPointer>
+#include <QTimer>
 #include <QWidget>
 
 #include "../QtScrcpyCore/include/QtScrcpyCore.h"
@@ -15,11 +16,12 @@ class ToolForm;
 class FileHandler;
 class QYUVOpenGLWidget;
 class QLabel;
+class MetalVideoWidget;
 class VideoForm : public QWidget, public qsc::DeviceObserver
 {
     Q_OBJECT
 public:
-    explicit VideoForm(bool framelessWindow = false, bool skin = true, bool showToolBar = true, QWidget *parent = 0);
+    explicit VideoForm(bool framelessWindow = false, bool skin = true, bool showToolBar = true, int decodeMode = 0, QWidget *parent = 0);
     ~VideoForm();
 
     void staysOnTop(bool top = true);
@@ -38,7 +40,10 @@ public:
 private:
     void onFrame(int width, int height, uint8_t* dataY, uint8_t* dataU, uint8_t* dataV,
                  int linesizeY, int linesizeU, int linesizeV) override;
+    // VideoToolbox Metal 路径帧回调（仅 macOS arm64）
+    void onFrameMetal(void* cvPixelBuffer, int width, int height) override;
     void updateFPS(quint32 fps) override;
+    void onVideoSessionChanged(const QSize &size, bool clientResized) override;
     void grabCursor(bool grab) override;
 
     void updateStyleSheet(bool vertical);
@@ -70,11 +75,20 @@ protected:
     void dropEvent(QDropEvent *event) override;
 
 private:
+    // 获取当前视频渲染 widget（OpenGL 或 Metal 容器）
+    QWidget* videoWidget() const;
+    // 是否使用 Metal 渲染路径
+    bool isMetalMode() const;
+
     // ui
     Ui::videoForm *ui;
     QPointer<ToolForm> m_toolForm;
     QPointer<QWidget> m_loadingWidget;
     QPointer<QYUVOpenGLWidget> m_videoWidget;
+
+    // Metal 渲染路径（仅 macOS arm64）
+    QPointer<MetalVideoWidget> m_metalWidget;
+
     QPointer<QLabel> m_fpsLabel;
 
     //inside member
@@ -85,6 +99,12 @@ private:
     bool m_skin = true;
     QPoint m_fullScreenBeforePos;
     QString m_serial;
+    int m_decodeMode = 0;
+    bool m_metalFirstFrame = true;  // Metal 首次帧标记
+    bool m_flexDisplay = false;
+    bool m_preventAutoResize = false;
+    QTimer m_flexResizeTimer;
+    QSize m_pendingDisplaySize;
 
     //Whether to display the toolbar when connecting a device.
     bool show_toolbar = true;

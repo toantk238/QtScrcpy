@@ -4,7 +4,7 @@
 #include <QDebug>
 
 #include "config.h"
-#ifdef Q_OS_OSX
+#ifdef Q_OS_MACOS
 #include "path.h"
 #endif
 
@@ -105,6 +105,21 @@
 #define COMMON_CHECKED_DEVICES_KEY  "CheckedDevices"
 #define COMMON_LEFT_PANEL_OPEN_KEY  "LeftPanelOpen"
 
+#define COMMON_DECODE_MODE_KEY "DecodeMode"
+#define COMMON_DECODE_MODE_DEF 0
+
+#define COMMON_CODEC_MODE_INDEX_KEY "CodecModeIndex"
+#define COMMON_CODEC_MODE_INDEX_DEF 0
+
+#define COMMON_PRESET_LEVEL_KEY "PresetLevel"
+#define COMMON_PRESET_LEVEL_DEF 1
+
+#define COMMON_VIDEO_SOURCE_KEY "VideoSource"
+#define COMMON_VIDEO_SOURCE_DEF 0
+
+#define COMMON_CAMERA_FACING_KEY "CameraFacing"
+#define COMMON_CAMERA_FACING_DEF 0
+
 // device config
 #define SERIAL_WINDOW_RECT_KEY_X "WindowRectX"
 #define SERIAL_WINDOW_RECT_KEY_Y "WindowRectY"
@@ -153,7 +168,7 @@ const QString &Config::getConfigPath()
             // default application dir
             // mac系统当从finder打开app时，默认工作目录不再是可执行程序的目录了，而是"/"
             // 而Qt的获取工作目录的api都依赖QCoreApplication的初始化，所以使用mac api获取当前目录
-#ifdef Q_OS_OSX
+#ifdef Q_OS_MACOS
             // get */QtScrcpy.app path
             s_configPath = Path::GetCurrentPath();
             s_configPath += "/Contents/MacOS/config";
@@ -184,6 +199,22 @@ void Config::setUserBootConfig(const UserBootConfig &config)
     m_userData->setValue(COMMON_SIMPLE_MODE_KEY, config.simpleMode);
     m_userData->setValue(COMMON_AUTO_UPDATE_DEVICE_KEY, config.autoUpdateDevice);
     m_userData->setValue(COMMON_SHOW_TOOLBAR_KEY, config.showToolbar);
+    m_userData->setValue(COMMON_DECODE_MODE_KEY, config.decodeMode);
+    m_userData->setValue(COMMON_CODEC_MODE_INDEX_KEY, config.codecModeIndex);
+    m_userData->setValue(COMMON_PRESET_LEVEL_KEY, config.presetLevel);
+    m_userData->setValue(COMMON_VIDEO_SOURCE_KEY, config.videoSource);
+    m_userData->setValue(COMMON_CAMERA_FACING_KEY, config.cameraFacing);
+    m_userData->setValue("AdvancedDisplay", config.advancedDisplay);
+    m_userData->setValue("DisplayMode", config.displayMode);
+    m_userData->setValue("DisplayId", config.displayId);
+    m_userData->setValue("NewDisplay", config.newDisplay);
+    m_userData->setValue("Crop", config.crop);
+    m_userData->setValue("FlexDisplay", config.flexDisplay);
+    m_userData->setValue("DisplayImePolicy", config.displayImePolicy);
+    m_userData->setValue("VdSystemDecorations", config.vdSystemDecorations);
+    m_userData->setValue("VdDestroyContent", config.vdDestroyContent);
+    m_userData->setValue("KeepActive", config.keepActive);
+    m_userData->setValue("StartApp", config.startApp);
     m_userData->endGroup();
     m_userData->sync();
 }
@@ -219,6 +250,27 @@ UserBootConfig Config::getUserBootConfig()
     config.simpleMode = m_userData->value(COMMON_SIMPLE_MODE_KEY, COMMON_SIMPLE_MODE_DEF).toBool();
     config.autoUpdateDevice = m_userData->value(COMMON_AUTO_UPDATE_DEVICE_KEY, COMMON_AUTO_UPDATE_DEVICE_DEF).toBool();
     config.showToolbar =m_userData->value(COMMON_SHOW_TOOLBAR_KEY,COMMON_SHOW_TOOLBAR_DEF).toBool();
+    config.decodeMode = m_userData->value(COMMON_DECODE_MODE_KEY, COMMON_DECODE_MODE_DEF).toInt();
+    config.codecModeIndex = m_userData->value(COMMON_CODEC_MODE_INDEX_KEY, COMMON_CODEC_MODE_INDEX_DEF).toInt();
+    // PresetLevel replaced the MTK-specific MtkLevel key; fall back to the old
+    // key so users who already picked a tier keep their selection.
+    config.presetLevel = m_userData->value(COMMON_PRESET_LEVEL_KEY, -1).toInt();
+    if (config.presetLevel < 0) {
+        config.presetLevel = m_userData->value("MtkLevel", COMMON_PRESET_LEVEL_DEF).toInt();
+    }
+    config.videoSource = m_userData->value(COMMON_VIDEO_SOURCE_KEY, COMMON_VIDEO_SOURCE_DEF).toInt();
+    config.cameraFacing = m_userData->value(COMMON_CAMERA_FACING_KEY, COMMON_CAMERA_FACING_DEF).toInt();
+    config.advancedDisplay = m_userData->value("AdvancedDisplay", false).toBool();
+    config.displayMode = m_userData->value("DisplayMode", 0).toInt();
+    config.displayId = m_userData->value("DisplayId", "").toString();
+    config.newDisplay = m_userData->value("NewDisplay", "").toString();
+    config.crop = m_userData->value("Crop", "").toString();
+    config.flexDisplay = m_userData->value("FlexDisplay", false).toBool();
+    config.displayImePolicy = m_userData->value("DisplayImePolicy", "").toString();
+    config.vdSystemDecorations = m_userData->value("VdSystemDecorations", true).toBool();
+    config.vdDestroyContent = m_userData->value("VdDestroyContent", true).toBool();
+    config.keepActive = m_userData->value("KeepActive", false).toBool();
+    config.startApp = m_userData->value("StartApp", "").toString();
     m_userData->endGroup();
     return config;
 }

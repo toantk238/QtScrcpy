@@ -1,6 +1,8 @@
 ﻿#include <QApplication>
+#include <QColor>
 #include <QDebug>
 #include <QFile>
+#include <QPalette>
 #ifdef Q_OS_LINUX
 #include <QFileInfo>
 #include <QIcon>
@@ -45,7 +47,7 @@ int main(int argc, char *argv[])
     qputenv("QTSCRCPY_CONFIG_PATH", "../../../config");
 #endif
 
-#ifdef Q_OS_OSX
+#ifdef Q_OS_MACOS
     qputenv("QTSCRCPY_ADB_PATH", "../../../../../../QtScrcpy/QtScrcpyCore/src/third_party/adb/mac/adb");
     qputenv("QTSCRCPY_SERVER_PATH", "../../../../../../QtScrcpy/QtScrcpyCore/src/third_party/scrcpy-server");
     qputenv("QTSCRCPY_KEYMAP_PATH", "../../../../../../keymap");
@@ -127,7 +129,7 @@ int main(int argc, char *argv[])
     }
 
     installTranslator();
-#if defined(Q_OS_WIN32) || defined(Q_OS_OSX)
+#if defined(Q_OS_WIN32) || defined(Q_OS_MACOS)
     MouseTap::getInstance()->initMouseEventTap();
 #endif
 
@@ -135,8 +137,20 @@ int main(int argc, char *argv[])
     QFile file(":/qss/psblack.css");
     if (file.open(QFile::ReadOnly)) {
         QString qss = QLatin1String(file.readAll());
-        QString paletteColor = qss.mid(20, 7);
-        qApp->setPalette(QPalette(QColor(paletteColor)));
+        QPalette palette;
+        palette.setColor(QPalette::Window, QColor("#1e1e1e"));
+        palette.setColor(QPalette::WindowText, QColor("#ffffff"));
+        palette.setColor(QPalette::Base, QColor("#252525"));
+        palette.setColor(QPalette::AlternateBase, QColor("#2d2d2d"));
+        palette.setColor(QPalette::Text, QColor("#ffffff"));
+        palette.setColor(QPalette::Button, QColor("#252525"));
+        palette.setColor(QPalette::ButtonText, QColor("#ffffff"));
+        palette.setColor(QPalette::Highlight, QColor("#0078d4"));
+        palette.setColor(QPalette::HighlightedText, QColor("#ffffff"));
+        palette.setColor(QPalette::Disabled, QPalette::Text, QColor("#6b6b6b"));
+        palette.setColor(QPalette::Disabled, QPalette::ButtonText, QColor("#6b6b6b"));
+        palette.setColor(QPalette::Disabled, QPalette::Base, QColor("#2d2d2d"));
+        qApp->setPalette(palette);
         qApp->setStyleSheet(qss);
         file.close();
     }
@@ -164,7 +178,7 @@ int main(int argc, char *argv[])
     int ret = a.exec();
     delete g_mainDlg;
 
-#if defined(Q_OS_WIN32) || defined(Q_OS_OSX)
+#if defined(Q_OS_WIN32) || defined(Q_OS_MACOS)
     MouseTap::getInstance()->quitMouseEventTap();
 #endif
     return ret;

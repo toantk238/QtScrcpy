@@ -9,7 +9,7 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
-DeviceTile::DeviceTile(const QString &serial, const QString &displayName, bool frameless, bool skin, bool showToolbar, QWidget *parent)
+DeviceTile::DeviceTile(const QString &serial, const QString &displayName, bool frameless, bool skin, bool showToolbar, int decodeMode, QWidget *parent)
     : QWidget(parent)
     , m_serial(serial)
 {
@@ -40,7 +40,7 @@ DeviceTile::DeviceTile(const QString &serial, const QString &displayName, bool f
     m_videoLayout = new QVBoxLayout(videoAreaWidget);
     m_videoLayout->setContentsMargins(0, 0, 0, 0);
 
-    m_videoForm = new VideoForm(frameless, skin, showToolbar, videoAreaWidget);
+    m_videoForm = new VideoForm(frameless, skin, showToolbar, decodeMode, videoAreaWidget);
     m_videoForm->setSerial(serial);
     m_videoForm->setFocusPolicy(Qt::StrongFocus);
     setFocusProxy(m_videoForm);

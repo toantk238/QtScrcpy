@@ -90,8 +90,11 @@ if (NOT MSVC)
     # lots of warnings and all warnings as errors
     add_compile_options(-Wall -Wextra -pedantic -Werror)
 
-    # disable some warning
-    add_compile_options(-Wno-nested-anon-types -Wno-c++17-extensions -Wno-overloaded-virtual)
+    # disable clang-only warnings
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|AppleClang")
+        add_compile_options(-Wno-nested-anon-types -Wno-c++17-extensions)
+    endif()
+    add_compile_options(-Wno-overloaded-virtual)
 endif()
 
 #
@@ -186,6 +189,10 @@ set(QC_UI_SOURCES
     ui/devicedashboard.cpp
     ui/devicenaming.h
     ui/devicenaming.cpp
+    ui/encoderpreset.h
+    ui/encoderpreset.cpp
+    ui/presetconfigdialog.h
+    ui/presetconfigdialog.cpp
     render/qyuvopenglwidget.h
     render/qyuvopenglwidget.cpp
 )
@@ -220,11 +227,17 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     )
 endif()
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    set(QC_UTIL_SOURCES ${QC_UTIL_SOURCES} 
+    set(QC_UTIL_SOURCES ${QC_UTIL_SOURCES}
         util/mousetap/cocoamousetap.h
         util/mousetap/cocoamousetap.mm
         util/path.h
         util/path.mm
+    )
+
+    # MetalVideoWindow (Apple Silicon VideoToolbox + Metal 渲染)
+    set(QC_UI_SOURCES ${QC_UI_SOURCES}
+        render/metalvideowindow.h
+        render/metalvideowindow.mm
     )
 endif()
 source_group(util FILES ${QC_UTIL_SOURCES})
@@ -364,6 +377,9 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 
     # mac framework
     target_link_libraries(${PROJECT_NAME} PRIVATE "-framework AppKit")
+    target_link_libraries(${PROJECT_NAME} PRIVATE "-framework Metal")
+    target_link_libraries(${PROJECT_NAME} PRIVATE "-framework CoreVideo")
+    target_link_libraries(${PROJECT_NAME} PRIVATE "-framework QuartzCore")
 endif()
 
 # Linux

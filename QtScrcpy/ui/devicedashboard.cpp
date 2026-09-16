@@ -82,7 +82,7 @@ void DeviceDashboard::addTile(const QString &serial, const QString &deviceName, 
     bool skin = false;       // which breaks OpenGL rendering when embedded — always off for tiles
     bool showToolbar = bootConfig.showToolbar;
 
-    auto *tile = new DeviceTile(serial, deviceName, frameless, skin, showToolbar, m_gridWidget);
+    auto *tile = new DeviceTile(serial, deviceName, frameless, skin, showToolbar, bootConfig.decodeMode, m_gridWidget);
     tile->updateShowSize(size);
 
     if (tile->videoForm()) {

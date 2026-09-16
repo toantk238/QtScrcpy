@@ -27,6 +27,7 @@ struct CsvDeviceInfo {
     QString manufacturer;
     QString modelName;
 };
+#include "presetconfigdialog.h"
 
 namespace Ui
 {
@@ -35,6 +36,11 @@ namespace Ui
 
 class QYUVOpenGLWidget;
 class DeviceDashboard;
+class QComboBox;
+class QLineEdit;
+class QCheckBox;
+class QGroupBox;
+class QPushButton;
 class Dialog : public QWidget
 {
     Q_OBJECT
@@ -84,6 +90,13 @@ private slots:
 
     void on_autoUpdatecheckBox_toggled(bool checked);
 
+    void on_codecModeBox_currentIndexChanged(int index);
+    void on_presetConfigBtn_clicked();
+
+    void on_videoSourceBox_currentIndexChanged(int index);
+    void on_refreshCameraBtn_clicked();
+    void on_refreshAppsBtn_clicked();
+
     void showIpEditMenu(const QPoint &pos);
 
     void on_selectAllDevicesBtn_clicked();
@@ -100,6 +113,9 @@ private:
     int findDeviceFromeSerialBox(bool wifi);
     quint32 getBitRate();
     const QString &getServerPath();
+    void updateVideoSourceUi();
+    void initAdvancedDisplayUi();
+    void updateAdvancedDisplayUi();
     void loadIpHistory();
     void saveIpHistory(const QString &ip);
     QString getDeviceDisplayName(const QString &serial);
@@ -117,6 +133,7 @@ private:
     void applyCheckStateToItem(QListWidgetItem *item, const QString &serial);
     void connectSerial(const QString &serial);  // build DeviceParams and connect one device
     void updateToggleAllBtn();
+    void syncPresetLevelToUi();
 
 protected:
     void closeEvent(QCloseEvent *event) override;
@@ -140,6 +157,18 @@ private:
     Ui::Widget *ui;
     qsc::AdbProcess m_adb;
     QSystemTrayIcon *m_hideIcon;
+    QGroupBox *m_advancedDisplayGroup = nullptr;
+    QComboBox *m_displayModeBox = nullptr;
+    QLineEdit *m_displayIdEdit = nullptr;
+    QLineEdit *m_newDisplayEdit = nullptr;
+    QLineEdit *m_cropEdit = nullptr;
+    QCheckBox *m_flexDisplayCheck = nullptr;
+    QComboBox *m_displayImePolicyBox = nullptr;
+    QCheckBox *m_vdSystemDecorationsCheck = nullptr;
+    QCheckBox *m_vdDestroyContentCheck = nullptr;
+    QCheckBox *m_keepActiveCheck = nullptr;
+    QComboBox *m_startAppBox = nullptr;
+    QPushButton *m_refreshAppsBtn = nullptr;
     QMenu *m_menu;
     QAction *m_showWindow;
     QAction *m_quit;
@@ -158,6 +187,9 @@ private:
     QPointer<QPushButton> m_toggleBtn;
     QPointer<QPropertyAnimation> m_panelAnim;
     bool m_panelOpen = false;
+    quint32 m_prevBitRate = 2000000;
+    int m_prevMaxSizeIndex = 0;
+    QPointer<PresetConfigDialog> m_presetDialog;
 };
 
 #endif // DIALOG_H

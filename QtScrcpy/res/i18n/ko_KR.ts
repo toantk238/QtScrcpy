@@ -24,6 +24,14 @@
         <translation>잠금 없음</translation>
     </message>
     <message>
+        <source>FFmpeg + OpenGL (Universal Default)</source>
+        <translation>FFmpeg + OpenGL（범용 기본값）</translation>
+    </message>
+    <message>
+        <source>VideoToolbox + Metal (Apple Silicon Only)</source>
+        <translation>VideoToolbox + Metal（Apple Silicon 전용）</translation>
+    </message>
+    <message>
         <source>Notice</source>
         <translation>알림</translation>
     </message>
@@ -61,6 +69,14 @@
     <message>
         <source>QuickAssistant</source>
         <translation>빠른 도우미</translation>
+    </message>
+    <message>
+        <source>If you need more professional PC remote software, you can try the following software:</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <source>QuickDesk</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <source>You can contact me with telegram &lt;https://t.me/+Ylf_5V_rDCMyODQ1&gt;</source>
@@ -122,12 +138,20 @@
         <translation>스크린샷</translation>
     </message>
     <message>
+        <source>copy clipboard text</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
         <source>open screen</source>
         <translation>화면 열기</translation>
     </message>
     <message>
         <source>group control</source>
         <translation>그룹 제어</translation>
+    </message>
+    <message>
+        <source>edit keymap</source>
+        <translation type="unfinished"></translation>
     </message>
 </context>
 <context>
@@ -194,6 +218,14 @@
     <message>
         <source>Double click to connect:</source>
         <translation>더블 클릭하여 연결:</translation>
+    </message>
+    <message>
+        <source>Decode Mode:</source>
+        <translation>디코드 모드：</translation>
+    </message>
+    <message>
+        <source>FFmpeg: better compatibility; VideoToolbox: Apple Silicon only</source>
+        <translation>FFmpeg：호환성 우수；VideoToolbox：Apple Silicon 전용</translation>
     </message>
     <message>
         <source>lock orientation:</source>
@@ -320,6 +352,88 @@
     <message>
         <source>record save path:</source>
         <translation>기록 저장 경로:</translation>
+    </message>
+
+<message>
+        <source>Codec Mode:</source>
+        <translation>코덱 모드：</translation>
+    </message>
+<message>
+        <source>Default (Auto)</source>
+        <translation>기본값（자동）</translation>
+    </message>
+<message>
+        <source>Encoder selection: Default uses system auto-select; presets enable vendor-specific tuning.</source>
+        <translation>인코더 선택：기본값은 시스템 자동 선택. 프리셋은 벤더별 튜닝을 활성화합니다.</translation>
+    </message>
+<message>
+        <source>Open encoder advanced settings: optimization levels for visual quality and performance.</source>
+        <translation>인코더 고급 설정 열기：화질 및 성능 최적화 레벨.</translation>
+    </message>
+<message>
+        <source>Encoder Settings...</source>
+        <translation>인코더 설정...</translation>
+    </message>
+</context>
+<context>
+    <name>PresetConfigDialog</name>
+    <message>
+        <source>Settings</source>
+        <translation>설정</translation>
+    </message>
+    <message>
+        <source>MTK Encoder</source>
+        <translation>MTK 인코더</translation>
+    </message>
+    <message>
+        <source>This feature is for MediaTek (MTK) devices only.
+Using on non-MTK devices may cause encoding failure or visual artifacts.</source>
+        <translation>이 기능은 MediaTek(MTK) 기기 전용입니다.
+비 MTK 기기에서 사용하면 인코딩 실패 또는 화면 이상이 발생할 수 있습니다.</translation>
+    </message>
+    <message>
+        <source>Encoding Optimization Level</source>
+        <translation>인코딩 최적화 레벨</translation>
+    </message>
+    <message>
+        <source>Profile:</source>
+        <translation>프로필:</translation>
+    </message>
+    <message>
+        <source>Game Mode (20Mbps, QP≤28)</source>
+        <translation>게임 모드 (20Mbps, QP≤28)</translation>
+    </message>
+    <message>
+        <source>Balanced (8Mbps, QP≤35)</source>
+        <translation>균형 (8Mbps, QP≤35)</translation>
+    </message>
+    <message>
+        <source>Power Saver (4Mbps, QP≤35)</source>
+        <translation>절전 (4Mbps, QP≤35)</translation>
+    </message>
+    <message>
+        <source>VBR + hard QP cap at 28 + short GOP. The strongest anti-blur shield for real-time gaming.</source>
+        <translation>VBR + QP 하드 상한 28 + 짧은 GOP. 실시간 게임을 위한 최강의 안티 블러 실드.</translation>
+    </message>
+    <message>
+        <source>Standard anti-blur protection with optimal visual quality. Recommended for daily use.</source>
+        <translation>표준 안티 블러 보호, 최적의 화질. 일상 사용에 권장.</translation>
+    </message>
+    <message>
+        <source>Maximum power saving: low-power ME + single ref frame. Saves most encoder power for non-gaming scenarios.</source>
+        <translation>최대 절전: 저전력 ME + 단일 참조 프레임. 비게임 시나리오에서 인코더 전력 최대 절약.</translation>
+    </message>
+    <message>
+        <source>VBR + QP cap at 28 + short GOP (5 frames). Hard ceiling blocks Sticky QP completely — best for real-time gaming.</source>
+        <translation>VBR + QP 상한 28 + 짧은 GOP (5프레임). 하드 상한이 Sticky QP를 완전히 차단 — 실시간 게임에 최적.</translation>
+    </message>
+    <message>
+        <source>VBR + QP cap at 35 + standard GOP. Matches default visual quality while preventing QP runaway. Ideal for daily use.</source>
+        <translation>VBR + QP 상한 35 + 표준 GOP. QP 폭주를 방지하며 기본 화질 유지. 일상 사용에 이상적.</translation>
+    </message>
+    <message>
+        <source>VBR + QP cap at 35 + disabled visual optimizations + low-power ME + single ref frame. Maximum power saving for non-intensive scenarios.</source>
+        <translation>VBR + QP 상한 35 + 비주얼 최적화 비활성화 + 저전력 ME + 단일 참조 프레임. 비집중 시나리오용 최대 절전.</translation>
     </message>
 </context>
 </TS>

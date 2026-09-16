@@ -23,6 +23,22 @@ struct UserBootConfig
     bool simpleMode       = false;
     bool autoUpdateDevice = true;
     bool showToolbar      = true;
+    int decodeMode        = 0;  // 0=FFmpeg OpenGL (默认), 1=VideoToolbox Metal (Apple Silicon)
+    int codecModeIndex    = 0;
+    int presetLevel       = 1;  // optimization tier of the currently selected encoder preset
+    int videoSource       = 0;  // 0=display, 1=camera
+    int cameraFacing      = 0;  // 0=back, 1=front
+    bool advancedDisplay = false;
+    int displayMode = 0;
+    QString displayId;
+    QString newDisplay;
+    QString crop;
+    bool flexDisplay = false;
+    QString displayImePolicy;
+    bool vdSystemDecorations = true;
+    bool vdDestroyContent = true;
+    bool keepActive = false;
+    QString startApp;
 };
 
 class QSettings;
